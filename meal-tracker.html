@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Meal Tracker</title>
+
+    <!-- Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <style>
+        /* ==================== RESET & BASE ==================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            padding: 16px;
+            padding-bottom: 80px;
+            line-height: 1.5;
+        }
+
+        /* ==================== HEADER ==================== */
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--tg-theme-hint-color, #e0e0e0);
+        }
+
+        .meal-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--tg-theme-text-color, #000000);
+            margin-bottom: 4px;
+        }
+
+        .meal-emoji {
+            font-size: 32px;
+            margin-right: 8px;
+        }
+
+        .meal-subtitle {
+            font-size: 14px;
+            color: var(--tg-theme-hint-color, #999999);
+        }
+
+        /* ==================== FOOD ITEMS ==================== */
+        .foods-container {
+            margin-bottom: 24px;
+        }
+
+        .food-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 8px;
+            background-color: var(--tg-theme-secondary-bg-color, #f5f5f5);
+            border-radius: 12px;
+            transition: background-color 0.2s;
+        }
+
+        .food-item:active {
+            background-color: var(--tg-theme-hint-color, #e0e0e0);
+        }
+
+        .food-checkbox {
+            width: 22px;
+            height: 22px;
+            margin-right: 12px;
+            cursor: pointer;
+            accent-color: var(--tg-theme-button-color, #3390ec);
+        }
+
+        .food-name {
+            flex: 1;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--tg-theme-text-color, #000000);
+        }
+
+        .weight-input-container {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .weight-input {
+            width: 70px;
+            padding: 8px;
+            font-size: 16px;
+            border: 1px solid var(--tg-theme-hint-color, #e0e0e0);
+            border-radius: 8px;
+            text-align: center;
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+        }
+
+        .weight-input:focus {
+            outline: none;
+            border-color: var(--tg-theme-button-color, #3390ec);
+        }
+
+        .weight-unit {
+            font-size: 14px;
+            color: var(--tg-theme-hint-color, #999999);
+        }
+
+        /* ==================== OTHER SECTION ==================== */
+        .other-section {
+            margin-top: 24px;
+            padding: 16px;
+            background-color: var(--tg-theme-secondary-bg-color, #f5f5f5);
+            border-radius: 12px;
+        }
+
+        .other-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--tg-theme-text-color, #000000);
+        }
+
+        .other-input-group {
+            margin-bottom: 12px;
+        }
+
+        .other-input-group label {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 6px;
+            color: var(--tg-theme-hint-color, #999999);
+        }
+
+        .text-input {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid var(--tg-theme-hint-color, #e0e0e0);
+            border-radius: 8px;
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+        }
+
+        .text-input:focus {
+            outline: none;
+            border-color: var(--tg-theme-button-color, #3390ec);
+        }
+
+        /* ==================== SUBMIT BUTTON ==================== */
+        .submit-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 16px;
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            border-top: 1px solid var(--tg-theme-hint-color, #e0e0e0);
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--tg-theme-button-text-color, #ffffff);
+            background-color: var(--tg-theme-button-color, #3390ec);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .submit-btn:active {
+            opacity: 0.8;
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .submit-btn.loading {
+            position: relative;
+            color: transparent;
+        }
+
+        .submit-btn.loading::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            top: 50%;
+            left: 50%;
+            margin-left: -10px;
+            margin-top: -10px;
+            border: 2px solid var(--tg-theme-button-text-color, #ffffff);
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ==================== UTILITY ==================== */
+        .hidden {
+            display: none;
+        }
+
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 360px) {
+            .food-name {
+                font-size: 14px;
+            }
+
+            .weight-input {
+                width: 60px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1 class="meal-title">
+            <span class="meal-emoji" id="mealEmoji">🍽️</span>
+            <span id="mealName">Meal</span>
+        </h1>
+        <p class="meal-subtitle">Select items and adjust weights</p>
+    </div>
+
+    <!-- Foods Container -->
+    <div class="foods-container" id="foodsContainer">
+        <!-- Food items will be dynamically inserted here -->
+    </div>
+
+    <!-- Other Section -->
+    <div class="other-section">
+        <h2 class="other-title">➕ Other</h2>
+        <div class="other-input-group">
+            <label for="otherName">Food name</label>
+            <input type="text" id="otherName" class="text-input" placeholder="e.g., Banana">
+        </div>
+        <div class="other-input-group">
+            <label for="otherWeight">Weight (g)</label>
+            <input type="number" id="otherWeight" class="weight-input text-input" placeholder="0" min="0">
+        </div>
+    </div>
+
+    <!-- Submit Button (fallback if Telegram MainButton not available) -->
+    <div class="submit-container" id="submitContainer">
+        <button class="submit-btn" id="submitBtn">Submit Meal</button>
+    </div>
+
+    <script>
+        // ==================== CONFIGURATION ====================
+        // TODO: Replace with your n8n webhook URL
+        const WEBHOOK_URL = 'https://your-n8n-instance.com/webhook/meal-tracker';
+
+        // ==================== TELEGRAM WEB APP INITIALIZATION ====================
+        const tg = window.Telegram.WebApp;
+
+        // Initialize Telegram Web App
+        tg.ready();
+        tg.expand();
+
+        // Apply Telegram theme colors
+        document.body.style.backgroundColor = tg.backgroundColor || '#ffffff';
+
+        // ==================== MEAL CONFIGURATION ====================
+        const MEAL_CONFIG = {
+            'petit-dejeuner': {
+                name: 'Petit-déjeuner',
+                emoji: '🌅'
+            },
+            'dejeuner': {
+                name: 'Déjeuner',
+                emoji: '🍽️'
+            },
+            'diner': {
+                name: 'Dîner',
+                emoji: '🌙'
+            }
+        };
+
+        // ==================== URL PARAMETER PARSING ====================
+        function getUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            const meal = params.get('meal') || 'dejeuner';
+
+            let foods = [];
+            try {
+                const foodsParam = params.get('foods');
+                if (foodsParam) {
+                    foods = JSON.parse(decodeURIComponent(foodsParam));
+                }
+            } catch (e) {
+                console.error('Error parsing foods parameter:', e);
+                tg.showAlert('Error: Invalid foods data format');
+            }
+
+            return { meal, foods };
+        }
+
+        // ==================== UI INITIALIZATION ====================
+        function initializeUI() {
+            const { meal, foods } = getUrlParams();
+
+            // Set meal title and emoji
+            const mealConfig = MEAL_CONFIG[meal] || MEAL_CONFIG['dejeuner'];
+            document.getElementById('mealName').textContent = mealConfig.name;
+            document.getElementById('mealEmoji').textContent = mealConfig.emoji;
+
+            // Generate food items
+            const foodsContainer = document.getElementById('foodsContainer');
+            foodsContainer.innerHTML = '';
+
+            foods.forEach((food, index) => {
+                const foodItem = createFoodItem(food, index);
+                foodsContainer.appendChild(foodItem);
+            });
+
+            // If no foods provided, show a message
+            if (foods.length === 0) {
+                foodsContainer.innerHTML = '<p style="text-align: center; color: var(--tg-theme-hint-color, #999999); padding: 20px;">No foods provided. Use the "Other" section to add items.</p>';
+            }
+        }
+
+        // ==================== FOOD ITEM CREATION ====================
+        function createFoodItem(food, index) {
+            const div = document.createElement('div');
+            div.className = 'food-item';
+
+            div.innerHTML = `
+                <input type="checkbox" class="food-checkbox" id="food-${index}" data-index="${index}">
+                <label for="food-${index}" class="food-name">${food.name}</label>
+                <div class="weight-input-container">
+                    <input type="number" class="weight-input" id="weight-${index}"
+                           value="${food.defaultWeight || 0}" min="0" data-index="${index}">
+                    <span class="weight-unit">g</span>
+                </div>
+            `;
+
+            return div;
+        }
+
+        // ==================== FORM SUBMISSION ====================
+        async function submitMeal() {
+            const { meal } = getUrlParams();
+            const selectedFoods = [];
+
+            // Get checked food items
+            const checkboxes = document.querySelectorAll('.food-checkbox');
+            checkboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    const index = checkbox.dataset.index;
+                    const weightInput = document.getElementById(`weight-${index}`);
+                    const name = checkbox.nextElementSibling.textContent;
+                    const weight = parseInt(weightInput.value) || 0;
+
+                    if (weight > 0) {
+                        selectedFoods.push({ name, weight });
+                    }
+                }
+            });
+
+            // Get "Other" food item
+            const otherName = document.getElementById('otherName').value.trim();
+            const otherWeight = parseInt(document.getElementById('otherWeight').value) || 0;
+
+            // Validate "Other" section
+            if (otherName && !otherWeight) {
+                tg.showAlert('Please enter a weight for the custom food item.');
+                return;
+            }
+
+            if (!otherName && otherWeight) {
+                tg.showAlert('Please enter a name for the custom food item.');
+                return;
+            }
+
+            // Add "Other" item if both fields are filled
+            if (otherName && otherWeight > 0) {
+                selectedFoods.push({ name: otherName, weight: otherWeight });
+            }
+
+            // Check if at least one food is selected
+            if (selectedFoods.length === 0) {
+                tg.showAlert('Please select at least one food item.');
+                return;
+            }
+
+            // Prepare payload
+            const payload = {
+                meal: meal,
+                timestamp: new Date().toISOString(),
+                foods: selectedFoods
+            };
+
+            // Show loading state
+            setLoadingState(true);
+
+            try {
+                // Send data to webhook
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    // Success - close the app
+                    tg.showAlert('Meal tracked successfully!', () => {
+                        tg.close();
+                    });
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                console.error('Error submitting meal:', error);
+                tg.showAlert('Error: Could not send data. Please try again.');
+                setLoadingState(false);
+            }
+        }
+
+        // ==================== LOADING STATE ====================
+        function setLoadingState(loading) {
+            const submitBtn = document.getElementById('submitBtn');
+
+            if (loading) {
+                submitBtn.disabled = true;
+                submitBtn.classList.add('loading');
+
+                // Disable MainButton if available
+                if (tg.MainButton) {
+                    tg.MainButton.showProgress();
+                }
+            } else {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('loading');
+
+                // Enable MainButton if available
+                if (tg.MainButton) {
+                    tg.MainButton.hideProgress();
+                }
+            }
+        }
+
+        // ==================== TELEGRAM MAIN BUTTON SETUP ====================
+        function setupMainButton() {
+            if (tg.MainButton) {
+                // Use Telegram's MainButton
+                tg.MainButton.setText('Submit Meal');
+                tg.MainButton.show();
+                tg.MainButton.onClick(submitMeal);
+
+                // Hide fallback button
+                document.getElementById('submitContainer').classList.add('hidden');
+            } else {
+                // Use fallback button
+                document.getElementById('submitBtn').addEventListener('click', submitMeal);
+            }
+        }
+
+        // ==================== INITIALIZATION ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeUI();
+            setupMainButton();
+        });
+
+        // Also initialize if DOMContentLoaded already fired
+        if (document.readyState === 'loading') {
+            // Document still loading, wait for DOMContentLoaded
+        } else {
+            // Document already loaded
+            initializeUI();
+            setupMainButton();
+        }
+    </script>
+</body>
+</html>
