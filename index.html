@@ -292,23 +292,26 @@
         };
 
         // ==================== URL PARAMETER PARSING ====================
-        function getUrlParams() {
-            const params = new URLSearchParams(window.location.search);
-            const meal = params.get('meal') || 'dejeuner';
+      function getUrlParams() {
+    const params = new URLSearchParams(window.location.search);
+    const meal = params.get('meal') || 'dejeuner';
 
-            let foods = [];
-            try {
-                const foodsParam = params.get('foods');
-                if (foodsParam) {
-                    foods = JSON.parse(decodeURIComponent(foodsParam));
-                }
-            } catch (e) {
-                console.error('Error parsing foods parameter:', e);
-                tg.showAlert('Error: Invalid foods data format');
-            }
-
-            return { meal, foods };
+    let foods = [];
+    try {
+        const foodsParam = params.get('foods');
+        if (foodsParam) {
+            // Decode base64
+            const decoded = atob(foodsParam);
+            foods = JSON.parse(decoded);
         }
+    } catch (e) {
+        console.error('Error parsing foods parameter:', e);
+        console.error('Raw parameter:', params.get('foods'));
+        tg.showAlert('Error: Invalid foods data format. Check console.');
+    }
+
+    return { meal, foods };
+}
 
         // ==================== UI INITIALIZATION ====================
         function initializeUI() {
