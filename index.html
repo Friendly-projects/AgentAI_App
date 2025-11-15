@@ -151,7 +151,58 @@
             outline: none;
             border-color: var(--tg-theme-button-color, #3390ec);
         }
+.other-food-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            padding: 12px;
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            border-radius: 8px;
+        }
 
+        .other-food-item input.text-input {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .other-food-item input.weight-input {
+            width: 80px;
+        }
+
+        .remove-other-btn {
+            padding: 8px 12px;
+            background-color: #ff3b30;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 18px;
+            line-height: 1;
+            transition: opacity 0.2s;
+        }
+
+        .remove-other-btn:active {
+            opacity: 0.7;
+        }
+
+        .add-other-btn {
+            width: 100%;
+            padding: 12px;
+            margin-top: 12px;
+            background-color: var(--tg-theme-button-color, #3390ec);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .add-other-btn:active {
+            opacity: 0.8;
+        }
         /* ==================== SUBMIT BUTTON ==================== */
         .submit-container {
             position: fixed;
@@ -243,17 +294,13 @@
     </div>
 
     <!-- Other Section -->
-    <div class="other-section">
-        <h2 class="other-title">➕ Other</h2>
-        <div class="other-input-group">
-            <label for="otherName">Food name</label>
-            <input type="text" id="otherName" class="text-input" placeholder="e.g., Banana">
-        </div>
-        <div class="other-input-group">
-            <label for="otherWeight">Weight (g)</label>
-            <input type="number" id="otherWeight" class="weight-input text-input" placeholder="0" min="0">
-        </div>
+<div class="other-section">
+    <h2 class="other-title">➕ Other</h2>
+    <div id="otherFoodsContainer">
+        <!-- Dynamic other foods will be added here -->
     </div>
+    <button type="button" class="add-other-btn" id="addOtherBtn">+ Add Food</button>
+</div>
 
     <!-- Submit Button (fallback if Telegram MainButton not available) -->
     <div class="submit-container" id="submitContainer">
@@ -354,7 +401,44 @@
 
             return div;
         }
+// ==================== OTHER FOODS MANAGEMENT ====================
+        let otherFoodCounter = 0;
 
+        function createOtherFoodItem() {
+            const id = otherFoodCounter++;
+            const div = document.createElement('div');
+            div.className = 'other-food-item';
+            div.dataset.otherId = id;
+
+            div.innerHTML = `
+                <input type="text" class="text-input other-food-name" 
+                       placeholder="Food name" data-other-id="${id}">
+                <input type="number" class="weight-input text-input other-food-weight" 
+                       placeholder="0" min="0" data-other-id="${id}">
+                <span class="weight-unit">g</span>
+                <button type="button" class="remove-other-btn" data-other-id="${id}">×</button>
+            `;
+
+            // Add remove functionality
+            const removeBtn = div.querySelector('.remove-other-btn');
+            removeBtn.addEventListener('click', () => {
+                div.remove();
+            });
+
+            return div;
+        }
+
+        function addOtherFood() {
+            const container = document.getElementById('otherFoodsContainer');
+            const newItem = createOtherFoodItem();
+            container.appendChild(newItem);
+        }
+
+        // Setup add button
+        document.getElementById('addOtherBtn').addEventListener('click', addOtherFood);
+
+        // Add one "Other" field by default
+        addOtherFood();
         // ==================== FORM SUBMISSION ====================
         async function submitMeal() {
             const { meal } = getUrlParams();
@@ -375,25 +459,32 @@
                 }
             });
 
-            // Get "Other" food item
-            const otherName = document.getElementById('otherName').value.trim();
-            const otherWeight = parseInt(document.getElementById('otherWeight').value) || 0;
+            // Get all "Other" food items
+            const otherFoodItems = document.querySelectorAll('.other-food-item');
+            
+            otherFoodItems.forEach(item => {
+                const nameInput = item.querySelector('.other-food-name');
+                const weightInput = item.querySelector('.other-food-weight');
+                
+                const name = nameInput.value.trim();
+                const weight = parseInt(weightInput.value) || 0;
 
-            // Validate "Other" section
-            if (otherName && !otherWeight) {
-                tg.showAlert('Please enter a weight for the custom food item.');
-                return;
-            }
+                // Validate this "Other" item
+                if (name && !weight) {
+                    tg.showAlert(`Please enter a weight for "${name}".`);
+                    throw new Error('Validation failed');
+                }
 
-            if (!otherName && otherWeight) {
-                tg.showAlert('Please enter a name for the custom food item.');
-                return;
-            }
+                if (!name && weight) {
+                    tg.showAlert('Please enter a name for the food item with weight ' + weight + 'g.');
+                    throw new Error('Validation failed');
+                }
 
-            // Add "Other" item if both fields are filled
-            if (otherName && otherWeight > 0) {
-                selectedFoods.push({ name: otherName, weight: otherWeight });
-            }
+                // Add if both fields are filled
+                if (name && weight > 0) {
+                    selectedFoods.push({ name: name, weight: weight });
+                }
+            });
 
             // Check if at least one food is selected
             if (selectedFoods.length === 0) {
